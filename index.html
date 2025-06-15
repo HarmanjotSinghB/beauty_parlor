@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave 9 Manager</title>
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- CSS STYLES --- */
+        :root {
+            --sidebar-bg: #263238;
+            --main-bg: #26A69A;
+            --button-bg: #FF6F61;
+            --button-hover-bg: #FF8A80;
+            --text-light: #ffffff;
+            --text-dark: #333;
+            --border-color: #ccc;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--main-bg);
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: var(--sidebar-bg);
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-light);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
+
+        .sidebar-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-nav button {
+            display: block;
+            background-color: var(--button-bg);
+            color: var(--text-light);
+            border: none;
+            padding: 15px 20px;
+            margin: 10px 0;
+            width: 200px;
+            text-align: left;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        
+        .sidebar-nav button i {
+            margin-right: 15px;
+        }
+
+        .sidebar-nav button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex-grow: 1;
+            background-color: var(--main-bg);
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .view {
+            display: none; /* Hidden by default */
+        }
+        
+        .view.active {
+            display: block;
+        }
+
+        h1 {
+            color: var(--text-light);
+            border-bottom: 2px solid var(--text-light);
+            padding-bottom: 10px;
+        }
+
+        /* Form Styles */
+        .form-container, .content-container {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 700px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-light);
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        
+        #service-entries .service-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        #service-entries .service-row input:first-child { flex-grow: 1; }
+        
+        .remove-service-btn {
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .main-action-btn {
+            background-color: var(--button-bg);
+            color: var(--text-light);
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+
+        .main-action-btn:hover {
+            background-color: var(--button-hover-bg);
+        }
+        
+        /* Records & Income View */
+        .content-container {
+            color: var(--text-light);
+            font-size: 1.2em;
+        }
+        .content-container pre {
+            background-color: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .income-stat {
+            font-size: 1.5em;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        /* Admin Panel Table */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            color: var(--text-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .admin-table th, .admin-table td {
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+        .admin-table th {
+            background-color: var(--sidebar-bg);
+            color: var(--text-light);
+        }
+        .admin-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .admin-table .action-btn {
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .admin-table .edit-btn { color: #007bff; }
+        .admin-table .delete-btn { color: #dc3545; }
+        
+        /* Modal for Editing */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            color: var(--text-dark);
+        }
+        .modal-content .form-group label { color: var(--text-dark); }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- SIDEBAR -->
+        <nav class="sidebar">
+            <div class="sidebar-header">Wave 9</div>
+            <div class="sidebar-nav">
+                <button id="nav-data-entry"><i class="fas fa-edit"></i>Save Data</button>
+                <button id="nav-print-bill"><i class="fas fa-print"></i>Print Bill</button>
+                <button id="nav-view-records"><i class="fas fa-list-alt"></i>View Records</button>
+                <button id="nav-view-income"><i class="fas fa-chart-line"></i>View Income</button>
+                <button id="nav-admin-panel"><i class="fas fa-user-shield"></i>Admin Panel</button>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- Data Entry View -->
+            <div id="data-entry-view" class="view active">
+                <h1><i class="fas fa-edit"></i> Customer Data Entry</h1>
+                <div class="form-container">
+                    <form id="customer-form">
+                        <div class="form-group">
+                            <label for="name">Name:</label>
+                            <input type="text" id="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contact">Contact:</label>
+                            <input type="text" id="contact">
+                        </div>
+                        <div class="form-group">
+                            <label for="address">Address:</label>
+                            <input type="text" id="address">
+                        </div>
+                        <div class="form-group">
+                            <label>Services & Price (Rs.):</label>
+                            <div id="service-entries">
+                                <!-- Service rows will be added here by JS -->
+                            </div>
+                            <button type="button" id="add-service-btn" class="main-action-btn" style="background-color:#007bff;"><i class="fas fa-plus"></i> Add Service</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="discount">Discount (%):</label>
+                            <input type="number" id="discount" value="0" min="0" max="100">
+                        </div>
+                        <button type="submit" class="main-action-btn"><i class="fas fa-save"></i> Save</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- View Records View -->
+            <div id="records-view" class="view">
+                <h1><i class="fas fa-list-alt"></i> Customer Records</h1>
+                <div class="content-container">
+                    <pre id="records-output"></pre>
+                    <h2 id="records-daily-total"></h2>
+                </div>
+            </div>
+
+            <!-- Income View -->
+            <div id="income-view" class="view">
+                <h1><i class="fas fa-chart-line"></i> Income Summary</h1>
+                <div class="content-container">
+                    <div id="daily-income" class="income-stat"></div>
+                    <div id="monthly-income" class="income-stat"></div>
+                    <div id="yearly-income" class="income-stat"></div>
+                </div>
+            </div>
+            
+            <!-- Admin Panel View -->
+            <div id="admin-view" class="view">
+                <h1><i class="fas fa-user-shield"></i> Admin Panel</h1>
+                <div class="content-container">
+                    <button id="import-btn" class="main-action-btn"><i class="fas fa-upload"></i> Import Data</button>
+                    <input type="file" id="import-file-input" style="display: none;" accept=".json">
+                    <button id="export-btn" class="main-action-btn"><i class="fas fa-download"></i> Export Data</button>
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Services</th>
+                                <th>Total</th>
+                                <th>Discount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-records-body">
+                            <!-- Records will be populated by JS -->
+                        </tbody>
+                    </table>
+                     <h2 id="admin-income-summary" style="margin-top:20px;"></h2>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Edit Record Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">×</span>
+            <h2>Edit Record</h2>
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label for="edit-name">Name:</label>
+                    <input type="text" id="edit-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-contact">Contact:</label>
+                    <input type="text" id="edit-contact">
+                </div>
+                <div class="form-group">
+                    <label for="edit-address">Address:</label>
+                    <input type="text" id="edit-address">
+                </div>
+                 <div class="form-group">
+                    <label for="edit-services">Services (name:price;...):</label>
+                    <input type="text" id="edit-services">
+                </div>
+                <div class="form-group">
+                    <label for="edit-total">Total (Rs.):</label>
+                    <input type="number" step="0.01" id="edit-total" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-discount">Discount (%):</label>
+                    <input type="number" id="edit-discount" required>
+                </div>
+                <button type="submit" class="main-action-btn">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+    // --- JAVASCRIPT LOGIC ---
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- GLOBAL STATE & CONSTANTS ---
+        const DB_KEY = 'wave9_customer_records';
+        let lastSavedRecord = null;
+        const { jsPDF } = window.jspdf;
+        
+        // --- DOM ELEMENTS ---
+        const views = document.querySelectorAll('.view');
+        const customerForm = document.getElementById('customer-form');
+        const serviceEntriesContainer = document.getElementById('service-entries');
+        
+        // --- DATABASE FUNCTIONS ---
+        const getRecords = () => JSON.parse(localStorage.getItem(DB_KEY)) || [];
+        const saveRecords = (records) => localStorage.setItem(DB_KEY, JSON.stringify(records));
+
+        // --- CORE LOGIC ---
+        const getCurrentDate = () => new Date().toISOString().split('T')[0];
+
+        const calculateIncome = (period = "daily") => {
+            const records = getRecords();
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const monthStr = todayStr.substring(0, 7);
+            const yearStr = todayStr.substring(0, 4);
+
+            return records.reduce((total, record) => {
+                const recordDate = record.date;
+                if (period === "daily" && recordDate === todayStr) {
+                    total += record.total;
+                } else if (period === "monthly" && recordDate.startsWith(monthStr)) {
+                    total += record.total;
+                } else if (period === "yearly" && recordDate.startsWith(yearStr)) {
+                    total += record.total;
+                }
+                return total;
+            }, 0);
+        };
+        
+        const generateBill = (record) => {
+            if (!record) {
+                alert("No record data to print. Please save a record first.");
+                return;
+            }
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.text("Wave 9 Bill", doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            doc.text(`Date: ${record.date}`, 14, 30);
+            
+            doc.autoTable({
+                startY: 35,
+                head: [['Customer Details', '']],
+                body: [
+                    ['Name', record.name],
+                    ['Contact', record.contact],
+                    ['Address', record.address],
+                ],
+                theme: 'striped'
+            });
+
+            const servicesBody = record.services.map(s => [s.name, `Rs. ${s.price.toFixed(2)}`]);
+            const subtotal = record.services.reduce((acc, s) => acc + s.price, 0);
+
+            doc.autoTable({
+                head: [['Service', 'Price']],
+                body: servicesBody,
+                startY: doc.lastAutoTable.finalY + 10,
+                theme: 'grid',
+                didDrawPage: (data) => {
+                    // Footer
+                    doc.setFontSize(10);
+                    doc.text(`Subtotal: Rs. ${subtotal.toFixed(2)}`, data.settings.margin.left, doc.internal.pageSize.height - 30);
+                    doc.text(`Discount: ${record.discount}%`, data.settings.margin.left, doc.internal.pageSize.height - 25);
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`Total: Rs. ${record.total.toFixed(2)}`, data.settings.margin.left, doc.internal.pageSize.height - 18);
+                }
+            });
+
+            doc.save(`bill_${record.name.replace(/\s/g, '_')}_${Date.now()}.pdf`);
+        };
+
+
+        // --- VIEW RENDERING & SWITCHING ---
+        const showView = (viewId) => {
+            views.forEach(view => view.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        };
+
+        const addServiceRow = () => {
+            const row = document.createElement('div');
+            row.className = 'service-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Service Name" class="service-name" required>
+                <input type="number" placeholder="Price" class="service-price" min="0" step="0.01" required>
+                <button type="button" class="remove-service-btn">-</button>
+            `;
+            serviceEntriesContainer.appendChild(row);
+            row.querySelector('.remove-service-btn').addEventListener('click', () => row.remove());
+        };
+
+        const renderRecordsView = () => {
+            const records = getRecords();
+            const outputEl = document.getElementById('records-output');
+            if (records.length === 0) {
+                outputEl.textContent = "No records found.";
+                return;
+            }
+            let output = "Date       | Name                 | Contact          | Services                       | Total    | Discount\n";
+            output += "-".repeat(100) + "\n";
+            records.forEach(r => {
+                const servicesStr = r.services.map(s => s.name).join(', ').substring(0, 25);
+                output += `${r.date.padEnd(11)}| ${r.name.padEnd(20)} | ${r.contact.padEnd(16)} | ${servicesStr.padEnd(30)} | ${`Rs.${r.total.toFixed(2)}`.padEnd(8)} | ${r.discount}%\n`;
+            });
+            outputEl.textContent = output;
+            document.getElementById('records-daily-total').textContent = `Daily Total: Rs. ${calculateIncome('daily').toFixed(2)}`;
+        };
+        
+        const renderIncomeView = () => {
+            document.getElementById('daily-income').textContent = `Daily Total: Rs. ${calculateIncome('daily').toFixed(2)}`;
+            document.getElementById('monthly-income').textContent = `Monthly Total: Rs. ${calculateIncome('monthly').toFixed(2)}`;
+            document.getElementById('yearly-income').textContent = `Yearly Total: Rs. ${calculateIncome('yearly').toFixed(2)}`;
+        };
+        
+        const renderAdminPanel = () => {
+            const records = getRecords();
+            const tbody = document.getElementById('admin-records-body');
+            tbody.innerHTML = ''; // Clear existing
+            
+            records.forEach(record => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${record.date}</td>
+                    <td>${record.name}</td>
+                    <td>${record.contact}</td>
+                    <td>${record.services.map(s => `${s.name} (${s.price})`).join(', ')}</td>
+                    <td>${record.total.toFixed(2)}</td>
+                    <td>${record.discount}%</td>
+                    <td>
+                        <button class="action-btn edit-btn" data-id="${record.id}"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn delete-btn" data-id="${record.id}"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('admin-income-summary').textContent = `Daily: Rs. ${calculateIncome('daily').toFixed(2)} | Monthly: Rs. ${calculateIncome('monthly').toFixed(2)} | Yearly: Rs. ${calculateIncome('yearly').toFixed(2)}`;
+        };
+
+        // --- EVENT HANDLERS ---
+        // Navigation
+        document.getElementById('nav-data-entry').addEventListener('click', () => showView('data-entry-view'));
+        document.getElementById('nav-print-bill').addEventListener('click', () => generateBill(lastSavedRecord));
+        document.getElementById('nav-view-records').addEventListener('click', () => {
+            renderRecordsView();
+            showView('records-view');
+        });
+        document.getElementById('nav-view-income').addEventListener('click', () => {
+            renderIncomeView();
+            showView('income-view');
+        });
+        document.getElementById('nav-admin-panel').addEventListener('click', () => {
+            const password = prompt("Enter admin password:", "");
+            if (password === "admin123") {
+                renderAdminPanel();
+                showView('admin-view');
+            } else if (password !== null) {
+                alert("Incorrect password!");
+            }
+        });
+
+        // Data Entry Form
+        document.getElementById('add-service-btn').addEventListener('click', addServiceRow);
+
+        customerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const serviceRows = serviceEntriesContainer.querySelectorAll('.service-row');
+            let services = [];
+            let total = 0;
+            
+            serviceRows.forEach(row => {
+                const name = row.querySelector('.service-name').value;
+                const price = parseFloat(row.querySelector('.service-price').value);
+                if (name && !isNaN(price)) {
+                    services.push({ name, price });
+                    total += price;
+                }
+            });
+
+            const discount = parseFloat(document.getElementById('discount').value) || 0;
+            const discountedTotal = total * (1 - discount / 100);
+
+            const newRecord = {
+                id: Date.now(), // Unique ID for each record
+                date: getCurrentDate(),
+                name: document.getElementById('name').value,
+                contact: document.getElementById('contact').value,
+                address: document.getElementById('address').value,
+                services: services,
+                total: discountedTotal,
+                discount: discount,
+            };
+
+            const allRecords = getRecords();
+            allRecords.push(newRecord);
+            saveRecords(allRecords);
+            
+            lastSavedRecord = newRecord;
+            alert(`Data saved! Total: Rs. ${discountedTotal.toFixed(2)}`);
+            customerForm.reset();
+            serviceEntriesContainer.innerHTML = '';
+            addServiceRow();
+        });
+
+        // Admin Panel: Import/Export
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const records = getRecords();
+            const dataStr = JSON.stringify(records, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `wave9_records_${getCurrentDate()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        const importFileInput = document.getElementById('import-file-input');
+        document.getElementById('import-btn').addEventListener('click', () => importFileInput.click());
+        importFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedRecords = JSON.parse(e.target.result);
+                    if (Array.isArray(importedRecords)) {
+                        if (confirm("This will overwrite all current data. Are you sure?")) {
+                            saveRecords(importedRecords);
+                            renderAdminPanel(); // Refresh view
+                            alert("Data imported successfully!");
+                        }
+                    } else {
+                        throw new Error("Invalid file format.");
+                    }
+                } catch (err) {
+                    alert("Error reading file. Please ensure it's a valid JSON export from this application.");
+                }
+            };
+            reader.readAsText(file);
+            importFileInput.value = ''; // Reset input
+        });
+        
+        // Admin Panel: Edit/Delete
+        document.getElementById('admin-records-body').addEventListener('click', (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+
+            const id = parseInt(target.dataset.id);
+            let records = getRecords();
+            
+            if (target.classList.contains('delete-btn')) {
+                if (confirm('Are you sure you want to delete this record?')) {
+                    const updatedRecords = records.filter(r => r.id !== id);
+                    saveRecords(updatedRecords);
+                    renderAdminPanel();
+                }
+            } else if (target.classList.contains('edit-btn')) {
+                const recordToEdit = records.find(r => r.id === id);
+                if (recordToEdit) {
+                    // Populate modal
+                    document.getElementById('edit-id').value = recordToEdit.id;
+                    document.getElementById('edit-name').value = recordToEdit.name;
+                    document.getElementById('edit-contact').value = recordToEdit.contact;
+                    document.getElementById('edit-address').value = recordToEdit.address;
+                    // Convert services array to string for simple editing
+                    document.getElementById('edit-services').value = recordToEdit.services.map(s => `${s.name}:${s.price}`).join(';');
+                    document.getElementById('edit-total').value = recordToEdit.total;
+                    document.getElementById('edit-discount').value = recordToEdit.discount;
+                    
+                    document.getElementById('edit-modal').style.display = 'flex';
+                }
+            }
+        });
+
+        // Edit Modal Logic
+        const editModal = document.getElementById('edit-modal');
+        editModal.querySelector('.close-btn').addEventListener('click', () => editModal.style.display = 'none');
+        document.getElementById('edit-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('edit-id').value);
+            let records = getRecords();
+            const recordIndex = records.findIndex(r => r.id === id);
+
+            if (recordIndex > -1) {
+                // Parse services back from string to array of objects
+                const servicesStr = document.getElementById('edit-services').value;
+                const services = servicesStr.split(';').map(s => {
+                    const parts = s.split(':');
+                    return { name: parts[0], price: parseFloat(parts[1]) || 0 };
+                }).filter(s => s.name && s.price > 0);
+
+                records[recordIndex] = {
+                    ...records[recordIndex], // Keep original date and id
+                    name: document.getElementById('edit-name').value,
+                    contact: document.getElementById('edit-contact').value,
+                    address: document.getElementById('edit-address').value,
+                    services: services,
+                    total: parseFloat(document.getElementById('edit-total').value),
+                    discount: parseFloat(document.getElementById('edit-discount').value),
+                };
+                saveRecords(records);
+                renderAdminPanel();
+                editModal.style.display = 'none';
+                alert('Record updated successfully!');
+            }
+        });
+
+
+        // --- INITIALIZATION ---
+        addServiceRow(); // Start with one service row
+    });
+    </script>
+</body>
+</html>
